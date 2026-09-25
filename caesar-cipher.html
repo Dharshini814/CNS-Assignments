@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caesar Cipher & Breaker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --card: #1e2535;
+    --card2: #252d40;
+    --border: #2e3a52;
+    --border2: #3d4f6e;
+    --text: #e8edf5;
+    --muted: #8896b0;
+    --dim: #5a6a84;
+    --accent: #4f8ef7;
+    --accent-bg: #1a2a4a;
+    --accent-glow: #4f8ef730;
+    --green: #3ecf8e;
+    --green-bg: #0d2e1e;
+    --amber: #f7a94f;
+    --amber-bg: #2e1e08;
+    --red: #f76f6f;
+    --red-bg: #2e0d0d;
+    --purple: #a78bfa;
+    --purple-bg: #1e1430;
+    --radius: 10px;
+    --mono: 'Courier New', Courier, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p {
+    color: var(--muted);
+    margin-top: 0.4rem;
+    font-size: 0.92rem;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--bg2);
+    padding: 6px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .tab {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.18s;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .tab:hover { color: var(--text); background: var(--card2); }
+  .tab.active {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border2);
+  }
+  .tab .tag {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .tab:nth-child(1) .tag { background: var(--accent-bg); color: var(--accent); }
+  .tab:nth-child(2) .tag { background: var(--green-bg); color: var(--green); }
+  .tab:nth-child(3) .tag { background: var(--amber-bg); color: var(--amber); }
+  .tab:nth-child(4) .tag { background: var(--purple-bg); color: var(--purple); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .card h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .dot-blue { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .dot-purple { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .field { margin-bottom: 1rem; }
+
+  textarea, input[type="number"], input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    resize: none;
+  }
+  textarea:focus, input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  input[type="number"] { width: 120px; font-family: var(--mono); }
+
+  .row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+  .row .field { flex: 1; }
+
+  .btn {
+    padding: 10px 22px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-blue  { background: var(--accent); color: #fff; }
+  .btn-blue:hover  { filter: brightness(1.12); }
+  .btn-green { background: var(--green); color: #0d1a0d; }
+  .btn-green:hover { filter: brightness(1.1); }
+  .btn-amber { background: var(--amber); color: #1a1000; }
+  .btn-amber:hover { filter: brightness(1.1); }
+  .btn-purple { background: var(--purple); color: #0d0818; }
+  .btn-purple:hover { filter: brightness(1.1); }
+  .btn-ghost {
+    background: var(--card2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+
+  .result-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    color: var(--green);
+    word-break: break-all;
+    min-height: 54px;
+    position: relative;
+  }
+  .result-box .label-inline {
+    font-family: inherit;
+    font-size: 0.72rem;
+    color: var(--dim);
+    display: block;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .result-empty { color: var(--dim); font-family: inherit; font-style: italic; }
+  .copy-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--border2); }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.2rem 0;
+  }
+
+  .brute-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    font-family: var(--mono);
+  }
+  .brute-table th {
+    text-align: left;
+    padding: 8px 12px;
+    color: var(--dim);
+    font-size: 0.75rem;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .brute-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    word-break: break-all;
+  }
+  .brute-table tr.best td { background: var(--green-bg); color: var(--green); }
+  .brute-table td.key { color: var(--text); font-weight: 600; width: 48px; }
+  .brute-table td.score { color: var(--dim); width: 70px; text-align: right; }
+
+  .best-banner {
+    background: var(--green-bg);
+    border: 1px solid #1a5c3a;
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-top: 1rem;
+    display: none;
+  }
+  .best-banner.show { display: block; }
+  .best-banner .bb-title { font-size: 0.75rem; color: #3ecf8e88; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+  .best-banner .bb-row { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 6px; }
+  .best-banner .bb-item label { font-size: 0.7rem; color: var(--dim); margin-bottom: 2px; }
+  .best-banner .bb-val { font-family: var(--mono); font-size: 1rem; color: var(--green); font-weight: 600; }
+
+  .scroll-table { max-height: 380px; overflow-y: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+  .scroll-table::-webkit-scrollbar { width: 6px; }
+  .scroll-table::-webkit-scrollbar-track { background: transparent; }
+  .scroll-table::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  .badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+  .badge-green { background: var(--green-bg); color: var(--green); border: 1px solid #1a5c3a; }
+
+  .shift-visual {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    margin-top: 0.8rem;
+  }
+  .shift-char {
+    width: 32px; height: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+    font-family: var(--mono);
+    transition: all 0.2s;
+    position: relative;
+  }
+  .shift-char .orig { color: var(--dim); font-size: 0.6rem; }
+  .shift-char .enc { color: var(--accent); font-weight: 700; font-size: 0.85rem; }
+  .shift-char.non-alpha { opacity: 0.35; }
+  .shift-char.non-alpha .enc { color: var(--muted); }
+
+  .demo-step {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 0.88rem;
+  }
+  .demo-step .ds-label { color: var(--dim); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .demo-step .ds-val { font-family: var(--mono); color: var(--purple); font-size: 1.05rem; font-weight: 600; }
+
+  .info-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 0.6rem;
+  }
+  .info-row svg { flex-shrink: 0; }
+
+  @media (max-width: 540px) {
+    .tab { font-size: 0.78rem; padding: 8px 10px; }
+    .card { padding: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Caesar Cipher &amp; Breaker</h1>
+    <p>Encrypt · Decrypt · Brute-Force Attack &nbsp;—&nbsp; based on Caesar Cipher assignment</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('encrypt')">
+      Encrypt <span class="tag">A</span>
+    </button>
+    <button class="tab" onclick="showTab('decrypt')">
+      Decrypt <span class="tag">B</span>
+    </button>
+    <button class="tab" onclick="showTab('brute')">
+      Brute Force <span class="tag">C</span>
+    </button>
+    <button class="tab" onclick="showTab('demo')">
+      Play <span class="tag">D</span>
+    </button>
+  </div>
+
+  <!-- Part A: Encrypt -->
+  <div id="panel-encrypt" class="panel active">
+    <div class="card">
+      <h2><span class="dot dot-blue"></span> Encrypt plaintext &nbsp;<small style="color:var(--dim);font-weight:400;font-size:0.8rem;">C = (P + k) mod 26</small></h2>
+      <div class="field">
+        <label>Plaintext</label>
+        <textarea id="enc-text" rows="3" placeholder="Enter your message here…"></textarea>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:0">
+          <label>Shift key (k)</label>
+          <input type="number" id="enc-key" value="3" min="-25" max="25">
+        </div>
+        <button class="btn btn-blue" onclick="doEncrypt()">&#x2192; Encrypt</button>
+        <button class="btn btn-ghost" onclick="clearField('enc-text','enc-result-val')">Clear</button>
+      </div>
+      <hr class="divider">
+      <label>Ciphertext</label>
+      <div class="result-box">
+        <button class="copy-btn" onclick="copyResult('enc-result-val')">Copy</button>
+        <span id="enc-result-val" class="result-empty">Result will appear here…</span>
+      </div>
+      <div id="enc-visual" class="shift-visual" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- Part B: Decrypt -->
+  <div id="panel-decrypt" class="panel">
+    <div class="card">
+      <h2><span class="dot dot-green"></span> Decrypt ciphertext &nbsp;<small style="color:var(--dim);font-weight:400;font-size:0.8rem;">P = (C − k) mod 26</small></h2>
+      <div class="field">
+        <label>Ciphertext</label>
+        <textarea id="dec-text" rows="3" placeholder="Enter ciphertext to decrypt…"></textarea>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:0">
+          <label>Known key (k)</label>
+          <input type="number" id="dec-key" value="3" min="-25" max="25">
+        </div>
+        <button class="btn btn-green" onclick="doDecrypt()">&#x2192; Decrypt</button>
+        <button class="btn btn-ghost" onclick="clearField('dec-text','dec-result-val')">Clear</button>
+      </div>
+      <hr class="divider">
+      <label>Decrypted plaintext</label>
+      <div class="result-box" style="color:var(--green)">
+        <button class="copy-btn" onclick="copyResult('dec-result-val')">Copy</button>
+        <span id="dec-result-val" class="result-empty">Result will appear here…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part C: Brute Force -->
+  <div id="panel-brute" class="panel">
+    <div class="card">
+      <h2><span class="dot dot-amber"></span> Brute-force crack &amp; auto-detect</h2>
+      <div class="field">
+        <label>Ciphertext to crack</label>
+        <textarea id="brute-text" rows="3" placeholder="Paste any Caesar-encrypted text…"></textarea>
+      </div>
+      <div class="row">
+        <button class="btn btn-amber" onclick="doBrute()">&#x26A1; Crack it</button>
+        <button class="btn btn-ghost" onclick="clearBrute()">Clear</button>
+      </div>
+
+      <div id="best-banner" class="best-banner">
+        <div class="bb-title">&#x2713;&nbsp; Most likely plaintext identified</div>
+        <div class="bb-row">
+          <div class="bb-item">
+            <label>Best key</label>
+            <div class="bb-val" id="bb-key">—</div>
+          </div>
+          <div class="bb-item" style="flex:1">
+            <label>Decrypted plaintext</label>
+            <div class="bb-val" id="bb-text" style="word-break:break-all;">—</div>
+          </div>
+          <div class="bb-item">
+            <label>Score</label>
+            <div class="bb-val" id="bb-score">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="brute-table-wrap" style="display:none">
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div style="padding:1rem 1.2rem 0.6rem; font-size:0.82rem; color:var(--muted);">All 25 candidate keys — sorted by score</div>
+        <div class="scroll-table">
+          <table class="brute-table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Decrypted text</th>
+                <th style="text-align:right">Score</th>
+              </tr>
+            </thead>
+            <tbody id="brute-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demo / Game -->
+  <div id="panel-demo" class="panel">
+
+    <!-- Lobby -->
+    <div id="game-lobby">
+      <div class="card" style="text-align:center;padding:2.5rem 1.5rem;">
+        <div style="font-size:3rem;margin-bottom:0.6rem;">🕵️</div>
+        <h2 style="justify-content:center;font-size:1.3rem;margin-bottom:0.5rem;">Operation: Cipher Breaker</h2>
+        <p style="color:var(--muted);font-size:0.9rem;max-width:440px;margin:0 auto 1.8rem;">Intercepted messages are arriving fast. Your mission: crack each Caesar cipher before time runs out. Use clues, the alphabet wheel, and your wits. Don't let the enemy decode your score.</p>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:2rem;">
+          <div class="stat-pill"><span class="sp-label">Rounds</span><span class="sp-val">5</span></div>
+          <div class="stat-pill"><span class="sp-label">Lives</span><span class="sp-val">❤️ ❤️ ❤️</span></div>
+          <div class="stat-pill"><span class="sp-label">Timer</span><span class="sp-val">30s</span></div>
+        </div>
+        <button class="btn btn-purple" style="font-size:1rem;padding:13px 36px;" onclick="startGame()">▶ Play</button>
+      </div>
+    </div>
+
+    <!-- Game arena -->
+    <div id="game-arena" style="display:none;">
+
+      <!-- HUD -->
+      <div class="card" style="padding:0.9rem 1.2rem;margin-bottom:0.8rem;">
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:100px;">
+            <div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Round</div>
+            <div id="hud-round" style="font-size:1rem;font-weight:700;color:var(--purple);">1 / 5</div>
+          </div>
+          <div style="flex:1;min-width:100px;">
+            <div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Score</div>
+            <div id="hud-score" style="font-size:1rem;font-weight:700;color:var(--green);">0</div>
+          </div>
+          <div style="flex:1;min-width:100px;">
+            <div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Lives</div>
+            <div id="hud-lives" style="font-size:1rem;">❤️ ❤️ ❤️</div>
+          </div>
+          <div style="text-align:right;min-width:70px;">
+            <div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Time left</div>
+            <div id="hud-timer" style="font-size:1.6rem;font-weight:800;color:var(--amber);font-family:var(--mono);">30</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;background:var(--bg);border-radius:4px;height:5px;overflow:hidden;">
+          <div id="timer-bar" style="height:100%;background:var(--amber);border-radius:4px;width:100%;transition:width 1s linear;"></div>
+        </div>
+      </div>
+
+      <!-- Intercepted message -->
+      <div class="card" style="margin-bottom:0.8rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
+          <h2 style="margin-bottom:0;font-size:0.95rem;"><span class="dot dot-amber"></span> Intercepted message</h2>
+          <button id="btn-hint" class="btn btn-ghost" style="font-size:0.78rem;padding:5px 12px;" onclick="useHint()">💡 Hint <span id="hint-cost" style="color:var(--red);">−50pts</span></button>
+        </div>
+        <div id="cipher-display" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-family:var(--mono);font-size:1.1rem;color:var(--accent);letter-spacing:2px;word-break:break-all;line-height:1.8;"></div>
+        <div id="hint-box" style="display:none;margin-top:10px;background:var(--amber-bg);border:1px solid #5c3a00;border-radius:var(--radius);padding:10px 14px;font-size:0.85rem;color:var(--amber);"></div>
+      </div>
+
+      <!-- Alphabet wheel + guess -->
+      <div class="card" style="margin-bottom:0.8rem;">
+        <h2 style="margin-bottom:1rem;font-size:0.95rem;"><span class="dot dot-blue"></span> Caesar wheel — drag to rotate</h2>
+        <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+          <div style="flex:0 0 auto;">
+            <canvas id="wheel-canvas" width="200" height="200" style="cursor:grab;border-radius:50%;display:block;"></canvas>
+          </div>
+          <div style="flex:1;min-width:180px;">
+            <div style="margin-bottom:1rem;">
+              <label>Your shift guess</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button onclick="adjustGuess(-1)" class="btn btn-ghost" style="padding:6px 14px;font-size:1.1rem;">−</button>
+                <div id="guess-display" style="font-size:2rem;font-weight:800;font-family:var(--mono);color:var(--purple);min-width:40px;text-align:center;">1</div>
+                <button onclick="adjustGuess(1)" class="btn btn-ghost" style="padding:6px 14px;font-size:1.1rem;">+</button>
+              </div>
+            </div>
+            <div style="margin-bottom:1rem;">
+              <label>Preview decode</label>
+              <div id="preview-text" style="font-family:var(--mono);font-size:0.85rem;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;word-break:break-all;min-height:38px;max-height:60px;overflow:hidden;"></div>
+            </div>
+            <button class="btn btn-green" style="width:100%;justify-content:center;font-size:0.95rem;" onclick="submitGuess()">✔ Submit answer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback -->
+      <div id="feedback-box" style="display:none;" class="card"></div>
+    </div>
+
+    <!-- Game over -->
+    <div id="game-over" style="display:none;">
+      <div class="card" style="text-align:center;padding:2.5rem 1.5rem;">
+        <div id="go-emoji" style="font-size:3rem;margin-bottom:0.6rem;">🏆</div>
+        <h2 style="justify-content:center;font-size:1.3rem;margin-bottom:0.5rem;" id="go-title">Mission Complete!</h2>
+        <p id="go-msg" style="color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem;"></p>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:2rem;">
+          <div class="stat-pill"><span class="sp-label">Final score</span><span class="sp-val" id="go-score" style="color:var(--green);">0</span></div>
+          <div class="stat-pill"><span class="sp-label">Correct</span><span class="sp-val" id="go-correct">0 / 5</span></div>
+          <div class="stat-pill"><span class="sp-label">Rank</span><span class="sp-val" id="go-rank">—</span></div>
+        </div>
+        <div id="go-history" style="text-align:left;margin-bottom:1.5rem;"></div>
+        <button class="btn btn-purple" style="font-size:1rem;padding:13px 36px;" onclick="startGame()">▶ Play again</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.stat-pill {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 18px;
+  text-align: center;
+  min-width: 90px;
+}
+.stat-pill .sp-label { display:block; font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:3px; }
+.stat-pill .sp-val { display:block; font-size:1.05rem; font-weight:700; color:var(--text); }
+
+.fb-correct { background: var(--green-bg); border: 1px solid #1a5c3a; color: var(--green); border-radius: var(--radius); padding: 1rem 1.2rem; }
+.fb-wrong   { background: var(--red-bg);   border: 1px solid #5c1a1a; color: var(--red);   border-radius: var(--radius); padding: 1rem 1.2rem; }
+.fb-timeout { background: var(--amber-bg); border: 1px solid #5c3a00; color: var(--amber); border-radius: var(--radius); padding: 1rem 1.2rem; }
+.fb-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+.fb-detail { font-size: 0.85rem; opacity: 0.85; }
+.fb-pts { font-size: 0.95rem; font-weight: 700; margin-top: 6px; }
+</style>
+
+<script>
+const FREQ = {E:13,T:9,A:8,O:8,I:7,N:7,S:6,H:6,R:6,D:4,L:4,C:3,U:3};
+const WORDS = new Set(["the","be","to","of","and","a","in","that","have","i","it","for","not","on","with","he","as","you","do","at","this","but","his","by","from","they","we","say","her","she","or","an","will","my","one","all","would","there","their","what","so","up","out","if","about","who","get","which","go","me","when","make","can","like","time","no","just","him","know","take","people","into","year","your","good","some","could","them","see","other","than","then","now","look","only","come","its","over","think","also","back","use","two","how","our","work","first","well","way","even","new","want","because","any","give","day","most","us","is","are","was","were","been","has","had","cryptology","cryptography","cipher","message","secret","attack","python","security","project","code"]);
+
+function encrypt(text, key) {
+  return text.split('').map(c => {
+    if (c >= 'A' && c <= 'Z') return String.fromCharCode((c.charCodeAt(0) - 65 + key % 26 + 26) % 26 + 65);
+    if (c >= 'a' && c <= 'z') return String.fromCharCode((c.charCodeAt(0) - 97 + key % 26 + 26) % 26 + 97);
+    return c;
+  }).join('');
+}
+function decrypt(text, key) { return encrypt(text, -key); }
+function scoreText(text) {
+  const words = text.toLowerCase().match(/[a-z]+/g) || [];
+  const wordHits = words.filter(w => WORDS.has(w)).length;
+  const freqScore = text.toUpperCase().split('').reduce((s, c) => s + (FREQ[c] || 0), 0);
+  return wordHits * 100 + freqScore;
+}
+function bruteForce(cipher) {
+  return Array.from({length: 25}, (_, i) => {
+    const k = i + 1;
+    const t = decrypt(cipher, k);
+    return {key: k, text: t, score: scoreText(t)};
+  });
+}
+function showTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+function doEncrypt() {
+  const text = document.getElementById('enc-text').value;
+  const key = parseInt(document.getElementById('enc-key').value) || 0;
+  if (!text.trim()) return;
+  const result = encrypt(text, key);
+  const el = document.getElementById('enc-result-val');
+  el.textContent = result;
+  el.classList.remove('result-empty');
+  el.style.color = 'var(--accent)';
+  renderShiftVisual(text, result, key);
+}
+function renderShiftVisual(plain, cipher, key) {
+  const wrap = document.getElementById('enc-visual');
+  const chars = plain.slice(0, 40);
+  wrap.innerHTML = chars.split('').map((c, i) => {
+    const isAlpha = /[a-zA-Z]/.test(c);
+    return `<div class="shift-char${isAlpha ? '' : ' non-alpha'}">
+      <span class="orig">${c}</span>
+      <span class="enc">${cipher[i] || c}</span>
+    </div>`;
+  }).join('') + (plain.length > 40 ? `<span style="color:var(--dim);font-size:0.8rem;align-self:center">…+${plain.length-40}</span>` : '');
+}
+function doDecrypt() {
+  const text = document.getElementById('dec-text').value;
+  const key = parseInt(document.getElementById('dec-key').value) || 0;
+  if (!text.trim()) return;
+  const result = decrypt(text, key);
+  const el = document.getElementById('dec-result-val');
+  el.textContent = result;
+  el.classList.remove('result-empty');
+  el.style.color = 'var(--green)';
+}
+function doBrute() {
+  const text = document.getElementById('brute-text').value.trim();
+  if (!text) return;
+  const candidates = bruteForce(text);
+  const best = candidates.reduce((a, b) => b.score > a.score ? b : a);
+  const sorted = [...candidates].sort((a, b) => b.score - a.score);
+  document.getElementById('bb-key').textContent = best.key;
+  document.getElementById('bb-text').textContent = best.text;
+  document.getElementById('bb-score').textContent = best.score;
+  document.getElementById('best-banner').classList.add('show');
+  const tbody = document.getElementById('brute-tbody');
+  tbody.innerHTML = sorted.map(c => `
+    <tr class="${c.key === best.key ? 'best' : ''}">
+      <td class="key">${c.key}${c.key === best.key ? ' <span class="badge badge-green">best</span>' : ''}</td>
+      <td>${esc(c.text)}</td>
+      <td class="score">${c.score}</td>
+    </tr>`).join('');
+  document.getElementById('brute-table-wrap').style.display = 'block';
+}
+function clearBrute() {
+  document.getElementById('brute-text').value = '';
+  document.getElementById('best-banner').classList.remove('show');
+  document.getElementById('brute-table-wrap').style.display = 'none';
+}
+function clearField(textId, resultId) {
+  document.getElementById(textId).value = '';
+  const el = document.getElementById(resultId);
+  el.textContent = 'Result will appear here…';
+  el.classList.add('result-empty');
+  document.getElementById('enc-visual') && (document.getElementById('enc-visual').innerHTML = '');
+}
+function copyResult(id) {
+  const val = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(val).catch(() => {});
+}
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ===== GAME ENGINE ===== */
+const MISSIONS = [
+  { plain:"ATTACK AT DAWN",   hint:"Military timing — when does the sun rise?" },
+  { plain:"THE CODE IS SAFE",  hint:"First word is a common article." },
+  { plain:"SEND MORE TROOPS",  hint:"A request for reinforcements." },
+  { plain:"MEET AT THE BRIDGE",hint:"A location for a rendezvous." },
+  { plain:"CIPHER IS BROKEN",  hint:"Bad news for the encryption team." },
+  { plain:"VICTORY IS NEAR",   hint:"An encouraging battlefield message." },
+  { plain:"SECRET RENDEZVOUS", hint:"Think of a covert meeting." },
+  { plain:"OPERATION PHOENIX", hint:"A bird that rises from ashes." },
+  { plain:"HOLD THE LINE",     hint:"A command to stay put." },
+  { plain:"ABORT THE MISSION", hint:"Things didn't go to plan." },
+];
+
+const TOTAL_ROUNDS = 5;
+const ROUND_TIME = 30;
+const HINT_COST = 50;
+
+let gState = {};
+let timerInterval = null;
+let wheelGuess = 1;
+let wheelAngle = 0;
+let isDragging = false;
+let dragStartAngle = 0;
+let dragStartGuess = 1;
+
+function startGame() {
+  const shuffled = [...MISSIONS].sort(() => Math.random() - 0.5).slice(0, TOTAL_ROUNDS);
+  gState = {
+    rounds: shuffled.map(m => {
+      const key = Math.floor(Math.random() * 24) + 1;
+      return { plain: m.plain, hint: m.hint, key, cipher: encrypt(m.plain, key) };
+    }),
+    current: 0,
+    score: 0,
+    lives: 3,
+    correct: 0,
+    history: [],
+    hintUsed: false
+  };
+  document.getElementById('game-lobby').style.display = 'none';
+  document.getElementById('game-over').style.display = 'none';
+  document.getElementById('game-arena').style.display = 'block';
+  loadRound();
+}
+
+function loadRound() {
+  const r = gState.rounds[gState.current];
+  gState.hintUsed = false;
+  wheelGuess = 1;
+  wheelAngle = 0;
+
+  document.getElementById('hud-round').textContent = `${gState.current + 1} / ${TOTAL_ROUNDS}`;
+  document.getElementById('hud-score').textContent = gState.score;
+  document.getElementById('hud-lives').textContent = '❤️'.repeat(gState.lives) + '🖤'.repeat(3 - gState.lives);
+  document.getElementById('cipher-display').textContent = r.cipher;
+  document.getElementById('hint-box').style.display = 'none';
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('btn-hint').disabled = false;
+  document.getElementById('btn-hint').style.opacity = '1';
+  document.getElementById('guess-display').textContent = 1;
+  updatePreview();
+  drawWheel();
+  startTimer();
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  let remaining = ROUND_TIME;
+  document.getElementById('hud-timer').textContent = remaining;
+  document.getElementById('timer-bar').style.width = '100%';
+  document.getElementById('hud-timer').style.color = 'var(--amber)';
+
+  timerInterval = setInterval(() => {
+    remaining--;
+    document.getElementById('hud-timer').textContent = remaining;
+    document.getElementById('timer-bar').style.width = (remaining / ROUND_TIME * 100) + '%';
+    if (remaining <= 10) document.getElementById('hud-timer').style.color = 'var(--red)';
+    if (remaining <= 0) {
+      clearInterval(timerInterval);
+      timeOut();
+    }
+  }, 1000);
+}
+
+function timeOut() {
+  const r = gState.rounds[gState.current];
+  gState.lives--;
+  gState.history.push({ round: gState.current + 1, result: 'timeout', plain: r.plain, key: r.key, got: '—', pts: 0 });
+  showFeedback('timeout', `⏰ Time's up!`, `The answer was <b>${r.plain}</b> (key = ${r.key})`, 0);
+}
+
+function submitGuess() {
+  clearInterval(timerInterval);
+  const r = gState.rounds[gState.current];
+  const timeLeft = parseInt(document.getElementById('hud-timer').textContent);
+  const guess = wheelGuess;
+
+  if (guess === r.key) {
+    const bonus = Math.round(timeLeft * 5);
+    const hintPenalty = gState.hintUsed ? HINT_COST : 0;
+    const pts = Math.max(0, 100 + bonus - hintPenalty);
+    gState.score += pts;
+    gState.correct++;
+    gState.history.push({ round: gState.current + 1, result: 'correct', plain: r.plain, key: r.key, got: guess, pts });
+    showFeedback('correct', `🔓 Cracked it! Key = ${r.key}`, `"${r.plain}" — you earned +${pts} pts`, pts);
+  } else {
+    gState.lives--;
+    gState.history.push({ round: gState.current + 1, result: 'wrong', plain: r.plain, key: r.key, got: guess, pts: 0 });
+    showFeedback('wrong', `✗ Wrong key (you guessed ${guess})`, `The correct key was <b>${r.key}</b>. Message: "${r.plain}"`, 0);
+  }
+}
+
+function showFeedback(type, title, detail, pts) {
+  const fb = document.getElementById('feedback-box');
+  fb.style.display = 'block';
+  fb.className = 'card fb-' + type;
+  fb.innerHTML = `<div class="fb-title">${title}</div><div class="fb-detail">${detail}</div>` +
+    (pts > 0 ? `<div class="fb-pts" style="color:var(--green)">+${pts} points</div>` : '') +
+    `<button class="btn btn-ghost" style="margin-top:0.8rem;font-size:0.85rem;" onclick="nextRound()">
+      ${gState.current + 1 < TOTAL_ROUNDS && gState.lives > 0 ? '→ Next round' : '⚑ See results'}
+    </button>`;
+  document.getElementById('hud-lives').textContent = '❤️'.repeat(Math.max(0,gState.lives)) + '🖤'.repeat(Math.max(0,3-gState.lives));
+  document.getElementById('hud-score').textContent = gState.score;
+}
+
+function nextRound() {
+  gState.current++;
+  if (gState.current >= TOTAL_ROUNDS || gState.lives <= 0) {
+    endGame();
+  } else {
+    loadRound();
+  }
+}
+
+function endGame() {
+  clearInterval(timerInterval);
+  document.getElementById('game-arena').style.display = 'none';
+  document.getElementById('game-over').style.display = 'block';
+
+  const pct = gState.correct / TOTAL_ROUNDS;
+  let rank, emoji, title, msg;
+  if (pct === 1)        { rank = 'Master Spy 🕵️'; emoji = '🏆'; title = 'Mission Complete!'; msg = 'Flawless. Every cipher cracked. The agency is proud.'; }
+  else if (pct >= 0.8)  { rank = 'Field Agent 🔍'; emoji = '🎖️'; title = 'Well Done, Agent!'; msg = 'Almost perfect. One more training run and you\'re unstoppable.'; }
+  else if (pct >= 0.6)  { rank = 'Analyst 📡'; emoji = '👍'; title = 'Not Bad!'; msg = 'Decent work. Study your frequency tables and try again.'; }
+  else if (pct >= 0.4)  { rank = 'Trainee 📚'; emoji = '📖'; title = 'Keep Practicing'; msg = 'The ciphers are tough. Brush up on Caesar theory and retry.'; }
+  else                   { rank = 'Recruit 🐣'; emoji = '😅'; title = 'Mission Failed'; msg = 'The enemy has the advantage. But every spy starts somewhere!'; }
+
+  document.getElementById('go-emoji').textContent = emoji;
+  document.getElementById('go-title').textContent = title;
+  document.getElementById('go-msg').textContent = msg;
+  document.getElementById('go-score').textContent = gState.score;
+  document.getElementById('go-correct').textContent = `${gState.correct} / ${TOTAL_ROUNDS}`;
+  document.getElementById('go-rank').textContent = rank;
+
+  const hist = document.getElementById('go-history');
+  hist.innerHTML = '<div style="font-size:0.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Round breakdown</div>' +
+    gState.history.map(h => {
+      const icon = h.result === 'correct' ? '✅' : h.result === 'timeout' ? '⏰' : '❌';
+      const col = h.result === 'correct' ? 'var(--green)' : h.result === 'timeout' ? 'var(--amber)' : 'var(--red)';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--bg);border-radius:8px;margin-bottom:5px;font-size:0.83rem;">
+        <span>${icon} R${h.round}: <span style="font-family:var(--mono);color:var(--accent);">"${h.plain}"</span></span>
+        <span style="color:${col};font-weight:600;">${h.result === 'correct' ? '+' + h.pts + ' pts' : h.result.toUpperCase()}</span>
+      </div>`;
+    }).join('');
+}
+
+function useHint() {
+  if (gState.hintUsed) return;
+  const r = gState.rounds[gState.current];
+  gState.hintUsed = true;
+  document.getElementById('hint-box').style.display = 'block';
+  document.getElementById('hint-box').textContent = '💡 Hint: ' + r.hint;
+  document.getElementById('btn-hint').disabled = true;
+  document.getElementById('btn-hint').style.opacity = '0.4';
+}
+
+function adjustGuess(delta) {
+  wheelGuess = ((wheelGuess - 1 + delta + 25) % 25) + 1;
+  wheelAngle = (wheelGuess - 1) * (360 / 25);
+  document.getElementById('guess-display').textContent = wheelGuess;
+  drawWheel();
+  updatePreview();
+}
+
+function updatePreview() {
+  const r = gState.rounds[gState.current];
+  if (!r) return;
+  const preview = decrypt(r.cipher, wheelGuess);
+  document.getElementById('preview-text').textContent = preview;
+}
+
+/* Wheel drawing */
+function drawWheel() {
+  const canvas = document.getElementById('wheel-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const outerR = 90, innerR = 60;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const total = letters.length;
+
+  letters.forEach((letter, i) => {
+    const angle = ((i / total) * 2 * Math.PI) - Math.PI / 2 + (wheelGuess - 1) * (2 * Math.PI / 25);
+    const midAngle = angle;
+
+    const x1 = cx + outerR * Math.cos(midAngle);
+    const y1 = cy + outerR * Math.sin(midAngle);
+
+    const isHighlighted = i === 0;
+    ctx.beginPath();
+    ctx.moveTo(cx + (innerR + 2) * Math.cos(midAngle - Math.PI / total),
+               cy + (innerR + 2) * Math.sin(midAngle - Math.PI / total));
+    ctx.arc(cx, cy, outerR - 2, midAngle - Math.PI / total, midAngle + Math.PI / total);
+    ctx.arc(cx, cy, innerR + 2, midAngle + Math.PI / total, midAngle - Math.PI / total, true);
+    ctx.closePath();
+    ctx.fillStyle = isHighlighted ? '#4f8ef7' : '#1e2535';
+    ctx.strokeStyle = '#2e3a52';
+    ctx.lineWidth = 1;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(x1, y1);
+    ctx.rotate(midAngle + Math.PI / 2);
+    ctx.fillStyle = isHighlighted ? '#fff' : '#8896b0';
+    ctx.font = `bold 9px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(letter, 0, 0);
+    ctx.restore();
+  });
+
+  // inner ring — shifted alphabet
+  letters.forEach((letter, i) => {
+    const shiftedIdx = (i + wheelGuess) % 26;
+    const shiftedLetter = letters[shiftedIdx];
+    const angle = ((i / total) * 2 * Math.PI) - Math.PI / 2;
+    const r = innerR - 12;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    ctx.fillStyle = '#a78bfa';
+    ctx.font = 'bold 8px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(shiftedLetter, x, y);
+  });
+
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR - 26, 0, 2 * Math.PI);
+  ctx.fillStyle = '#161b27';
+  ctx.fill();
+  ctx.strokeStyle = '#3d4f6e';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#a78bfa';
+  ctx.font = 'bold 20px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(wheelGuess, cx, cy);
+
+  // pointer
+  ctx.beginPath();
+  ctx.moveTo(cx - 5, cy - outerR + 2);
+  ctx.lineTo(cx + 5, cy - outerR + 2);
+  ctx.lineTo(cx, cy - outerR - 6);
+  ctx.closePath();
+  ctx.fillStyle = '#f7a94f';
+  ctx.fill();
+}
+
+/* Wheel drag */
+function getAngle(canvas, e) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
+}
+
+window.addEventListener('load', () => {
+  const canvas = document.getElementById('wheel-canvas');
+  if (!canvas) return;
+  drawWheel();
+
+  canvas.addEventListener('mousedown', e => {
+    isDragging = true;
+    dragStartAngle = getAngle(canvas, e);
+    dragStartGuess = wheelGuess;
+    canvas.style.cursor = 'grabbing';
+  });
+  canvas.addEventListener('touchstart', e => {
+    isDragging = true;
+    dragStartAngle = getAngle(canvas, e);
+    dragStartGuess = wheelGuess;
+  }, {passive: true});
+
+  const onMove = e => {
+    if (!isDragging) return;
+    const angle = getAngle(canvas, e);
+    let delta = angle - dragStartAngle;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+    const steps = Math.round(delta / (360 / 25));
+    wheelGuess = ((dragStartGuess - 1 + steps + 250) % 25) + 1;
+    document.getElementById('guess-display').textContent = wheelGuess;
+    drawWheel();
+    updatePreview();
+  };
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('touchmove', onMove, {passive: true});
+
+  const onUp = () => { isDragging = false; canvas.style.cursor = 'grab'; };
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchend', onUp);
+});
+</script>
+</body>
+</html>
